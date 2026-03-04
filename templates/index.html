@@ -6,108 +6,186 @@
   <title>Fake News Detector</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- jsPDF for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
-<!-- Ambient background orbs -->
 <div class="bg-orbs" aria-hidden="true">
   <div class="orb orb-1"></div>
   <div class="orb orb-2"></div>
   <div class="orb orb-3"></div>
 </div>
 
-<main>
+<!-- Top Nav -->
+<nav class="topbar">
+  <div class="topbar-brand">
+    <span class="brand-icon">🔍</span>
+    <span class="brand-name">FakeNews<em>Detector</em></span>
+  </div>
+  <div class="topbar-actions">
+    <button class="nav-btn" id="aboutBtn">ℹ️ About</button>
+    <button class="nav-btn" id="settingsBtn">⚙️ Settings</button>
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+  </div>
+</nav>
 
-  <!-- ── Header ──────────────────────────────────────────────────────────── -->
-  <header class="site-header">
-    <div class="header-badge">
-      <span>🔍</span> AI-Powered Analysis
+<!-- Overlay -->
+<div class="panel-overlay" id="panelOverlay"></div>
+
+<!-- Settings Panel -->
+<aside class="side-panel" id="settingsPanel">
+  <div class="panel-header">
+    <span>⚙️ Settings</span>
+    <button class="panel-close" id="closeSettings">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="setting-group">
+      <div class="setting-label">Theme</div>
+      <div class="setting-row">
+        <span>Light Mode</span>
+        <label class="toggle-switch"><input type="checkbox" id="themeSwitch" /><span class="toggle-slider"></span></label>
+      </div>
     </div>
-    <h1 class="site-title">
-      Fake News<br /><em>Detection System</em>
-    </h1>
-    <p class="site-subtitle">
-      Paste any news article or headline below and our machine learning model
-      will determine if it's real or fabricated — instantly.
-    </p>
+    <div class="setting-group">
+      <div class="setting-label">Charts to Display</div>
+      <div class="setting-row"><span>Confidence Gauge</span><label class="toggle-switch"><input type="checkbox" id="showGauge" checked /><span class="toggle-slider"></span></label></div>
+      <div class="setting-row"><span>Bar Chart</span><label class="toggle-switch"><input type="checkbox" id="showBar" checked /><span class="toggle-slider"></span></label></div>
+      <div class="setting-row"><span>Radar Chart</span><label class="toggle-switch"><input type="checkbox" id="showRadar" checked /><span class="toggle-slider"></span></label></div>
+      <div class="setting-row"><span>History Line Chart</span><label class="toggle-switch"><input type="checkbox" id="showLine" checked /><span class="toggle-slider"></span></label></div>
+    </div>
+    <div class="setting-group">
+      <div class="setting-label">App Info</div>
+      <div class="version-info">
+        <div class="ver-row"><span>Version</span><strong>3.0.0</strong></div>
+        <div class="ver-row"><span>Model</span><strong>PAC + TF-IDF</strong></div>
+        <div class="ver-row"><span>Accuracy</span><strong>~85%</strong></div>
+        <div class="ver-row"><span>Dataset</span><strong>100 articles</strong></div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- About Panel -->
+<aside class="side-panel" id="aboutPanel">
+  <div class="panel-header">
+    <span>ℹ️ About</span>
+    <button class="panel-close" id="closeAbout">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="about-hero">🔍</div>
+    <h2 class="about-title">Fake News Detector</h2>
+    <div class="about-version">Version 3.0.0</div>
+    <p class="about-desc">An AI-powered web application that uses Machine Learning to detect whether a news article is real or fabricated — instantly.</p>
+    <div class="about-section-title">🧠 How It Works</div>
+    <div class="about-steps">
+      <div class="about-step"><span>1</span>Paste text or enter a news URL</div>
+      <div class="about-step"><span>2</span>TF-IDF vectorizer converts text to features</div>
+      <div class="about-step"><span>3</span>PassiveAggressive model classifies it</div>
+      <div class="about-step"><span>4</span>Result shown with charts, heatmap & PDF export</div>
+    </div>
+    <div class="about-section-title">🛠️ Tech Stack</div>
+    <div class="tech-grid">
+      <div class="tech-item">🐍 Python</div>
+      <div class="tech-item">🌶️ Flask</div>
+      <div class="tech-item">🤖 Scikit-learn</div>
+      <div class="tech-item">📊 Chart.js</div>
+      <div class="tech-item">📝 TF-IDF</div>
+      <div class="tech-item">📄 jsPDF</div>
+    </div>
+    <div class="about-section-title">⚠️ Disclaimer</div>
+    <p class="about-desc">This tool is for educational purposes. Always verify news through trusted sources. ML models are not 100% accurate.</p>
+  </div>
+</aside>
+
+<main>
+  <header class="site-header">
+    <div class="header-badge"><span>🔍</span> AI-Powered Analysis · v3.0</div>
+    <h1 class="site-title">Fake News<br /><em>Detection System</em></h1>
+    <p class="site-subtitle">Paste text or a URL — our ML model detects misinformation instantly with heatmaps, charts & PDF reports.</p>
   </header>
 
-  <!-- ── Model warning (shown only when model not ready) ─────────────────── -->
   {% if not model_ready %}
-  <div class="model-warning">
-    ⚠️ &nbsp;Model not loaded. Please run <code>python train_model.py</code> first.
-  </div>
+  <div class="model-warning">⚠️ &nbsp;Model not loaded. Please run <code>python train_model.py</code> first.</div>
   {% endif %}
 
-  <!-- ── Detector Card ───────────────────────────────────────────────────── -->
-  <section class="detector-card" aria-label="News detector">
+  <section class="detector-card">
 
-    <!-- Input -->
-    <div class="input-section">
-      <div class="input-header">
-        <span class="input-label">News Article or Headline</span>
-        <span class="word-counter" id="wordCountBadge">0 words</span>
-      </div>
-      <textarea
-        id="newsInput"
-        placeholder="Paste your news article or headline here…&#10;&#10;Tip: longer articles give more accurate results."
-        aria-label="News text input"
-        spellcheck="true"
-      ></textarea>
+    <!-- Input Mode Tabs -->
+    <div class="input-tabs">
+      <button class="input-tab active" id="tabText" data-tab="text">📝 Paste Text</button>
+      <button class="input-tab" id="tabUrl" data-tab="url">🌐 Enter URL</button>
     </div>
 
-    <!-- Example buttons -->
-    <div class="example-row">
-      <span class="label">Examples:</span>
-      <button
-        class="btn-example real"
-        data-example="Federal Reserve raises interest rates by 0.25% to combat rising inflation as economy grows steadily."
-        title="Load real news example"
-      >📰 Real News</button>
-      <button
-        class="btn-example fake"
-        data-example="Scientists confirm that eating bananas in reverse cures all cancers, governments hiding this secret for years."
-        title="Load fake news example"
-      >🚨 Fake News</button>
-      <button
-        class="btn-example"
-        data-example="NASA successfully launches new Mars mission with crew of six astronauts set to arrive in eight months."
-        title="Load another example"
-      >🚀 Another</button>
+    <!-- Text Input -->
+    <div class="input-pane active" id="paneText">
+      <div class="input-section">
+        <div class="input-header">
+          <span class="input-label">News Article or Headline</span>
+          <span class="word-counter" id="wordCountBadge">0 words</span>
+        </div>
+        <textarea id="newsInput" placeholder="Paste your news article or headline here…&#10;&#10;Tip: longer articles give more accurate results." spellcheck="true"></textarea>
+      </div>
+      <div class="example-row">
+        <span class="label">Examples:</span>
+        <button class="btn-example real" data-example="Federal Reserve raises interest rates by 0.25% to combat rising inflation as economy grows steadily this quarter.">📰 Real News</button>
+        <button class="btn-example fake" data-example="Scientists confirm eating bananas in reverse cures all cancers, governments hiding this secret for decades.">🚨 Fake News</button>
+        <button class="btn-example" data-example="NASA successfully launches new Mars mission with crew of six astronauts set to arrive in eight months.">🚀 Another</button>
+      </div>
+    </div>
+
+    <!-- URL Input -->
+    <div class="input-pane" id="paneUrl">
+      <div class="input-section">
+        <div class="input-header">
+          <span class="input-label">News Article URL</span>
+          <span class="url-status" id="urlStatus"></span>
+        </div>
+        <div class="url-input-row">
+          <input type="url" id="urlInput" placeholder="https://example.com/news-article" />
+          <button class="btn-fetch" id="fetchBtn">
+            <span class="fetch-spinner" id="fetchSpinner"></span>
+            <span id="fetchBtnText">Fetch</span>
+          </button>
+        </div>
+        <div class="url-hint">Enter a news article URL and click Fetch to extract the text automatically.</div>
+      </div>
     </div>
 
     <!-- Actions -->
     <div class="action-row">
       <button class="btn-detect" id="detectBtn" {% if not model_ready %}disabled{% endif %}>
-        <div class="spinner" id="spinner" aria-hidden="true"></div>
-        <span class="btn-icon" aria-hidden="true">🔍</span>
+        <div class="spinner" id="spinner"></div>
+        <span class="btn-icon">🔍</span>
         <span id="btnText">Detect</span>
       </button>
-      <button class="btn-clear" id="clearBtn" aria-label="Clear input">
-        Clear
-      </button>
+      <button class="btn-clear" id="clearBtn">Clear</button>
     </div>
 
-    <!-- Error -->
-    <div class="error-box" id="errorBox" role="alert" aria-live="polite">
-      ⚠️ <span id="errorMsg"></span>
-    </div>
+    <div class="error-box" id="errorBox">⚠️ <span id="errorMsg"></span></div>
 
-    <!-- Result Card -->
-    <div id="resultCard" aria-live="polite">
+    <!-- Result -->
+    <div id="resultCard">
       <div class="result-inner" id="resultInner">
 
+        <!-- Verdict -->
         <div class="result-header">
-          <div class="result-icon" id="resultIcon" aria-hidden="true"></div>
+          <div class="result-icon" id="resultIcon"></div>
           <div class="result-text">
             <div class="result-verdict" id="resultVerdict"></div>
             <div class="result-subtitle" id="resultSubtitle"></div>
           </div>
+          <div class="result-actions">
+            <div class="result-badge" id="resultBadge"></div>
+            <button class="btn-pdf" id="exportPdfBtn" title="Export PDF Report">📄 Export PDF</button>
+          </div>
         </div>
 
+        <!-- Confidence Bar -->
         <div class="confidence-section">
           <div class="confidence-label-row">
-            <span class="confidence-label">Confidence</span>
+            <span class="confidence-label">Confidence Score</span>
             <span class="confidence-value" id="confidenceVal">—</span>
           </div>
           <div class="confidence-bar-track">
@@ -116,53 +194,66 @@
           <div class="confidence-caption" id="confidenceCap"></div>
         </div>
 
+        <!-- Heatmap -->
+        <div class="heatmap-section" id="heatmapSection">
+          <div class="heatmap-title">🔥 Word Heatmap <span class="heatmap-legend"><span class="legend-suspicious"></span> Suspicious words</span></div>
+          <div class="heatmap-text" id="heatmapText"></div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid" id="chartsGrid">
+          <div class="chart-card" id="gaugeCard">
+            <div class="chart-title">🎯 Confidence Gauge</div>
+            <div class="chart-wrap gauge-wrap">
+              <canvas id="gaugeChart"></canvas>
+              <div class="gauge-center" id="gaugeCenterText"></div>
+            </div>
+          </div>
+          <div class="chart-card" id="barCard">
+            <div class="chart-title">📊 Real vs Fake Score</div>
+            <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+          </div>
+          <div class="chart-card" id="radarCard">
+            <div class="chart-title">🕸️ Signal Analysis</div>
+            <div class="chart-wrap"><canvas id="radarChart"></canvas></div>
+          </div>
+          <div class="chart-card chart-card-wide" id="lineCard">
+            <div class="chart-title">📈 Detection History</div>
+            <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Meta -->
         <div class="result-meta">
-          <div class="meta-item">
-            <span class="meta-icon">📝</span>
-            <span><strong id="wordCountMeta">—</strong> words analyzed</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-icon">🤖</span>
-            <span>TF-IDF + PassiveAggressive</span>
-          </div>
+          <div class="meta-item"><span>📝</span><span><strong id="wordCountMeta">—</strong> words</span></div>
+          <div class="meta-item"><span>🤖</span><span>TF-IDF + PAC</span></div>
+          <div class="meta-item"><span>⚡</span><span id="responseTime">—</span></div>
+          <div class="meta-item"><span>🔥</span><span><strong id="suspiciousCount">—</strong> suspicious words</span></div>
         </div>
 
       </div>
     </div>
-
   </section>
 
-  <!-- ── Stats ────────────────────────────────────────────────────────────── -->
-  <div class="stats-row" aria-label="System stats">
-    <div class="stat-card">
-      <span class="stat-icon" aria-hidden="true">📊</span>
-      <span class="stat-value" id="totalChecked">0</span>
-      <span class="stat-label">Articles Checked</span>
-    </div>
-    <div class="stat-card">
-      <span class="stat-icon" aria-hidden="true">🧠</span>
-      <span class="stat-value">ML</span>
-      <span class="stat-label">Model Type</span>
-    </div>
-    <div class="stat-card">
-      <span class="stat-icon" aria-hidden="true">⚡</span>
-      <span class="stat-value">&lt;1s</span>
-      <span class="stat-label">Response Time</span>
-    </div>
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card"><span class="stat-icon">📊</span><span class="stat-value" id="totalChecked">0</span><span class="stat-label">Checked</span></div>
+    <div class="stat-card"><span class="stat-icon">✅</span><span class="stat-value" id="totalReal">0</span><span class="stat-label">Real</span></div>
+    <div class="stat-card"><span class="stat-icon">🚨</span><span class="stat-value" id="totalFake">0</span><span class="stat-label">Fake</span></div>
+    <div class="stat-card"><span class="stat-icon">🎯</span><span class="stat-value" id="avgConfidence">—</span><span class="stat-label">Avg Confidence</span></div>
   </div>
-
 </main>
 
-<!-- ── Footer ────────────────────────────────────────────────────────────── -->
 <footer>
-  <div><strong>Fake News Detection System</strong></div>
-  <div>Built with Python · Flask · Scikit-learn · TF-IDF</div>
+  <div><strong>Fake News Detection System</strong> &nbsp;·&nbsp; v3.0.0</div>
+  <div>Built with Python · Flask · Scikit-learn · Chart.js · jsPDF</div>
   <div class="footer-tech">
     <span class="tech-tag">Python</span>
     <span class="tech-tag">Flask</span>
     <span class="tech-tag">Scikit-learn</span>
-    <span class="tech-tag">TF-IDF Vectorizer</span>
-    <span class="tech-tag">PassiveAggressive</span>
+    <span class="tech-tag">TF-IDF</span>
+    <span class="tech-tag">Chart.js</span>
+    <span class="tech-tag">jsPDF</span>
   </div>
 </footer>
 
