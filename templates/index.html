@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fake News Detector</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>" />
+</head>
+<body>
+
+<!-- Ambient background orbs -->
+<div class="bg-orbs" aria-hidden="true">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<main>
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="header-badge">
+      <span>🔍</span> AI-Powered Analysis
+    </div>
+    <h1 class="site-title">
+      Fake News<br /><em>Detection System</em>
+    </h1>
+    <p class="site-subtitle">
+      Paste any news article or headline below and our machine learning model
+      will determine if it's real or fabricated — instantly.
+    </p>
+  </header>
+
+  <!-- ── Model warning (shown only when model not ready) ─────────────────── -->
+  {% if not model_ready %}
+  <div class="model-warning">
+    ⚠️ &nbsp;Model not loaded. Please run <code>python train_model.py</code> first.
+  </div>
+  {% endif %}
+
+  <!-- ── Detector Card ───────────────────────────────────────────────────── -->
+  <section class="detector-card" aria-label="News detector">
+
+    <!-- Input -->
+    <div class="input-section">
+      <div class="input-header">
+        <span class="input-label">News Article or Headline</span>
+        <span class="word-counter" id="wordCountBadge">0 words</span>
+      </div>
+      <textarea
+        id="newsInput"
+        placeholder="Paste your news article or headline here…&#10;&#10;Tip: longer articles give more accurate results."
+        aria-label="News text input"
+        spellcheck="true"
+      ></textarea>
+    </div>
+
+    <!-- Example buttons -->
+    <div class="example-row">
+      <span class="label">Examples:</span>
+      <button
+        class="btn-example real"
+        data-example="Federal Reserve raises interest rates by 0.25% to combat rising inflation as economy grows steadily."
+        title="Load real news example"
+      >📰 Real News</button>
+      <button
+        class="btn-example fake"
+        data-example="Scientists confirm that eating bananas in reverse cures all cancers, governments hiding this secret for years."
+        title="Load fake news example"
+      >🚨 Fake News</button>
+      <button
+        class="btn-example"
+        data-example="NASA successfully launches new Mars mission with crew of six astronauts set to arrive in eight months."
+        title="Load another example"
+      >🚀 Another</button>
+    </div>
+
+    <!-- Actions -->
+    <div class="action-row">
+      <button class="btn-detect" id="detectBtn" {% if not model_ready %}disabled{% endif %}>
+        <div class="spinner" id="spinner" aria-hidden="true"></div>
+        <span class="btn-icon" aria-hidden="true">🔍</span>
+        <span id="btnText">Detect</span>
+      </button>
+      <button class="btn-clear" id="clearBtn" aria-label="Clear input">
+        Clear
+      </button>
+    </div>
+
+    <!-- Error -->
+    <div class="error-box" id="errorBox" role="alert" aria-live="polite">
+      ⚠️ <span id="errorMsg"></span>
+    </div>
+
+    <!-- Result Card -->
+    <div id="resultCard" aria-live="polite">
+      <div class="result-inner" id="resultInner">
+
+        <div class="result-header">
+          <div class="result-icon" id="resultIcon" aria-hidden="true"></div>
+          <div class="result-text">
+            <div class="result-verdict" id="resultVerdict"></div>
+            <div class="result-subtitle" id="resultSubtitle"></div>
+          </div>
+        </div>
+
+        <div class="confidence-section">
+          <div class="confidence-label-row">
+            <span class="confidence-label">Confidence</span>
+            <span class="confidence-value" id="confidenceVal">—</span>
+          </div>
+          <div class="confidence-bar-track">
+            <div class="confidence-bar-fill" id="confBar"></div>
+          </div>
+          <div class="confidence-caption" id="confidenceCap"></div>
+        </div>
+
+        <div class="result-meta">
+          <div class="meta-item">
+            <span class="meta-icon">📝</span>
+            <span><strong id="wordCountMeta">—</strong> words analyzed</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-icon">🤖</span>
+            <span>TF-IDF + PassiveAggressive</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ── Stats ────────────────────────────────────────────────────────────── -->
+  <div class="stats-row" aria-label="System stats">
+    <div class="stat-card">
+      <span class="stat-icon" aria-hidden="true">📊</span>
+      <span class="stat-value" id="totalChecked">0</span>
+      <span class="stat-label">Articles Checked</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon" aria-hidden="true">🧠</span>
+      <span class="stat-value">ML</span>
+      <span class="stat-label">Model Type</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon" aria-hidden="true">⚡</span>
+      <span class="stat-value">&lt;1s</span>
+      <span class="stat-label">Response Time</span>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── Footer ────────────────────────────────────────────────────────────── -->
+<footer>
+  <div><strong>Fake News Detection System</strong></div>
+  <div>Built with Python · Flask · Scikit-learn · TF-IDF</div>
+  <div class="footer-tech">
+    <span class="tech-tag">Python</span>
+    <span class="tech-tag">Flask</span>
+    <span class="tech-tag">Scikit-learn</span>
+    <span class="tech-tag">TF-IDF Vectorizer</span>
+    <span class="tech-tag">PassiveAggressive</span>
+  </div>
+</footer>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
